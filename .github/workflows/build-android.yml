@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
+          # 注意: 不用 cache: pnpm（会因 pnpm store 预热报 "packages field missing" 炸掉）
 
       # Rust + 移动端编译目标（arm64 真机）
       - name: Setup Rust (arm64 android target)
