@@ -1,18 +1,18 @@
 # 放入仓库的 .github/workflows/build-android.yml
 # 作用：在 GitHub 云端编译 HGhub 的 Android debug APK（你的电脑零环境）
-# 用法：fork 仓库 -> 新建该文件 -> 触发 -> 下载 artifact 里的 app-debug.apk
 name: build-android
 
 on:
   # 手动触发：Actions 页右上角 "Run workflow"
   workflow_dispatch: {}
-  # 推 main 时自动出包（可选，想纯手动就删掉下面这段）
+  # 推 main 时自动出包
   push:
     branches: [main]
 
 jobs:
   android-debug:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,26 +29,32 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      # Rust
-      - name: Setup Rust
+      # Rust + 移动端编译目标（arm64 真机）
+      - name: Setup Rust (arm64 android target)
         uses: dtolnay/rust-toolchain@stable
-
-      # Tauri 移动端工具链（自动装 Android SDK + 对应 Rust target）
-      - name: Setup Tauri Mobile
-        uses: tauri-apps/setup-tauri-mobile@v1
         with:
-          platform-tools: true
+          target: aarch64-linux-android
+
+      # Android SDK（platform-tools / platforms / build-tools 自动装）
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
+      # JDK 17（Tauri 移动端 Gradle 需要）
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
 
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
       # 仓库没带 Android 壳工程，必须先 init 生成 src-tauri/gen/android
-      # identifier 已在 tauri.conf.json 配好（com.hghub.huangguo），通常非交互直接过；
-      # 万一 CI 卡交互，把这行换成：pnpm tauri android init --org com.hghub --appname huangguo
+      # identifier 已在 tauri.conf.json 配好（com.hghub.huangguo），非交互环境用默认值直接完成
       - name: Init Android shell project
         run: pnpm tauri android init
 
-      # 出 debug APK（不用配 release 签名，可直接安装）
+      # 出 debug APK（自动用 debug 签名，手机可直接安装）
       - name: Build debug APK
         run: pnpm tauri android build --debug
 
