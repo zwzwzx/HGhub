@@ -21,11 +21,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # pnpm（项目锁的是 pnpm，别用 npm）
+      # pnpm（项目锁的是 pnpm；package.json 里有 pnpm.onlyBuiltDependencies，
+      # 这是 pnpm 10 的语法，pnpm 9 解析会报 "packages field missing or empty"，必须用 10）
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 10
 
       - name: Setup Node
         uses: actions/setup-node@v4
