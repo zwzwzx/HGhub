@@ -13,6 +13,10 @@ jobs:
   android-debug:
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    env:
+      # GitHub ubuntu-latest 自带 Android SDK，显式指给 Tauri
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,10 +39,6 @@ jobs:
         with:
           target: aarch64-linux-android
 
-      # Android SDK（platform-tools / platforms / build-tools 自动装）
-      - name: Install Android SDK
-        uses: android-actions/setup-android@v3
-
       # JDK 17（Tauri 移动端 Gradle 需要）
       - name: Setup Java 17
         uses: actions/setup-java@v4
@@ -46,13 +46,25 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # Android SDK：用 runner 自带 sdkmanager，全量接受 license，只装 Tauri 需要的组件
+      # （不用第三方 android-actions/setup-android，它 license 处理在 CI 会卡交互）
+      - name: Setup Android SDK
+        run: |
+          set -e
+          SM="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager -type f | head -n1)"
+          echo "using sdkmanager: $SM"
+          # 全量接受 license（yes 管道保证 7/8 全部接受，非交互不卡住）
+          yes | "$SM" --licenses >/dev/null 2>&1 || true
+          # 只装 Tauri 需要的三件套（compileSdk=34）
+          "$SM" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+
       - name: Install deps
         run: pnpm install --frozen-lockfile
 
       # 仓库没带 Android 壳工程，必须先 init 生成 src-tauri/gen/android
-      # identifier 已在 tauri.conf.json 配好（com.hghub.huangguo），非交互环境用默认值直接完成
+      # 带参数走非交互：org / appname 由 tauri.conf.json 的 identifier (com.hghub.huangguo) 决定
       - name: Init Android shell project
-        run: pnpm tauri android init
+        run: pnpm tauri android init --org com.hghub --appname huangguo
 
       # 出 debug APK（自动用 debug 签名，手机可直接安装）
       - name: Build debug APK
