@@ -63,9 +63,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # 仓库没带 Android 壳工程，必须先 init 生成 src-tauri/gen/android
-      # 带参数走非交互：org / appname 由 tauri.conf.json 的 identifier (com.hghub.huangguo) 决定
+      # Tauri 2.10 的 init 不带 --org/--appname 参数，自动从 tauri.conf.json 的
+      # identifier (com.hghub.huangguo) 推断 org=com.hghub / appname=huangguo，非交互直接过
       - name: Init Android shell project
-        run: pnpm tauri android init --org com.hghub --appname huangguo
+        run: pnpm tauri android init
 
       # 出 debug APK（自动用 debug 签名，手机可直接安装）
       - name: Build debug APK
