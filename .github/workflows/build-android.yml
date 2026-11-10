@@ -73,8 +73,11 @@ jobs:
         run: pnpm tauri android build --debug
 
       # 上传成可下载的 artifact
+      # Tauri android build 默认产出 universal(含 arm64/armv7/x86_64) fat apk，
+      # 用 glob 全量匹配 + if-no-files-found: error，避免再出现"找不到文件却假 success"
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: hghub-debug-apk
-          path: src-tauri/gen/android/app/build/outputs/apk/debug/app-debug.apk
+          path: src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
